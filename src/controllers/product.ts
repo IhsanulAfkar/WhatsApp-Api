@@ -62,7 +62,7 @@ export const getProduct: RequestHandler = async (req, res) => {
             }
         })
         if (!product)
-            return res.status(200).json({ message: "No product exist" })
+            return res.status(404).json({ message: "No product exist" })
 
         return res.status(200).json(product)
     } catch (error) {

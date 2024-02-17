@@ -29,7 +29,7 @@ const logger = pino({
     ...pinoPretty,
 }, pino.destination({
     // dest: './logger.log'
-    fd: fs.openSync('logger.log', 'a')
+    fd: fs.openSync('logger.txt', 'a')
 }));
 
 export default logger

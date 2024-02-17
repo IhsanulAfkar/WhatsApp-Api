@@ -89,6 +89,7 @@ model Contact {
   OutgoingMessage OutgoingMessage[]
   IncomingMessage IncomingMessage[]
   Order           Order[]
+  Transaction     Transaction[]
 }
 
 model ContactGroup {
@@ -231,50 +232,43 @@ model CampaignMessage {
 }
 
 model Product {
-  pkId         Int            @id @default(autoincrement())
-  id           String         @unique @default(uuid())
-  name         String
-  description  String?
-  media        String?
-  amount       Int
-  price        Float
-  userId       Int
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @default(now()) @map("updated_at")
-  user         User           @relation(fields: [userId], references: [pkId])
-  Transaction  Transaction[]
+  pkId        Int      @id @default(autoincrement())
+  id          String   @unique @default(uuid())
+  name        String
+  description String?
+  media       String?
+  amount      Int
+  price       Float
+  userId      Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  user        User     @relation(fields: [userId], references: [pkId])
+
   OrderProduct OrderProduct[]
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  productId Int
-  quantity  Int
-  total     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  pkId        Int      @id @default(autoincrement())
+  id          String   @unique @default(uuid()) @db.Uuid
+  userId      Int
+  phoneNumber String
+  contactId   Int?
+  contact     Contact? @relation(fields: [contactId], references: [pkId])
+  orderData   Json
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user    User    @relation(fields: [userId], references: [pkId])
-  product Product @relation(fields: [productId], references: [pkId])
-}
-
-enum OrderStatus {
-  CREATED
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
+  user User @relation(fields: [userId], references: [pkId])
 }
 
 model Order {
   pkId         Int            @id @default(autoincrement())
   id           String         @unique @default(uuid()) @db.Uuid
   name         String         @db.VarChar(128)
-  phone        String?
-  contactId    Int
-  contact      Contact?       @relation(fields: [contactId], references: [pkId])
-  orderData    String
+  phoneNumber  String
+  contactId    Int?
+  contact      Contact?       @relation(fields: [contactId], references: [pkId], onDelete: SetNull)
   status       OrderStatus    @default(CREATED)
   deviceId     Int
   device       Device         @relation(fields: [deviceId], references: [pkId])
@@ -284,12 +278,21 @@ model Order {
 }
 
 model OrderProduct {
-  orderId   Int // Foreign key to Order model
+  orderId   Int
   order     Order   @relation(fields: [orderId], references: [pkId])
-  productId Int // Foreign key to Product model
+  productId Int
   product   Product @relation(fields: [productId], references: [pkId])
+  quantity  Int
 
   @@id([orderId, productId])
+}
+
+enum OrderStatus {
+  CREATED
+  PROCESSING
+  DELIVERED
+  COMPLETED
+  CANCELLED
 }
 
 model PasswordReset {

@@ -11,6 +11,7 @@ import logger from '../config/logger';
 import prisma, { transformPrisma } from '../utils/db'
 import { BaileysEventHandler } from '../types'
 // import { sendCampaignReply } from '../controllers/campaign'
+import { sendAutoReply } from '../controllers/autoReply';
 import fs from 'fs'
 import { Server } from 'socket.io';
 
@@ -200,7 +201,9 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                 } else {
                                     logger.warn({ sessionId, data }, 'incoming messages');
                                     // sendCampaignReply(sessionId, message);
-
+                                    if (!message?.key?.remoteJid?.includes('@g.us')) {
+                                        sendAutoReply(sessionId, message)
+                                    }
                                     const incomingMessage = await prisma.incomingMessage.create({
                                         data: {
                                             id: message.key.id!,

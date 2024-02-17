@@ -1,14 +1,14 @@
-import { RequestHandler } from "express";
-import logger from "../config/logger";
-import { isUUID } from "../utils/uuid";
-import { getInstance, getJid, sendMediaFile, verifyJid } from "../whatsapp";
-import { proto } from "@whiskeysockets/baileys";
-import { delay as delayMs } from "../utils/delay";
-import prisma, { serializePrisma } from "../utils/db";
-import { memoryUpload } from "../config/multer";
+import { RequestHandler } from "express"
+import logger from "../config/logger"
+import { isUUID } from "../utils/uuid"
+import { getInstance, getJid, sendMediaFile, verifyJid } from "../whatsapp"
+import { proto } from "@whiskeysockets/baileys"
+import { delay as delayMs } from "../utils/delay"
+import prisma, { serializePrisma } from "../utils/db"
+import { memoryUpload } from "../config/multer"
 export const sendMessages: RequestHandler = async (req, res) => {
     try {
-        const session = getInstance(req.params.sessionId)!;
+        const session = getInstance(req.params.sessionId)!
         if (!isUUID(req.params.sessionId)) {
             return res.status(400).json({ message: 'Invalid sessionId' });
         }
@@ -42,8 +42,9 @@ export const sendMessages: RequestHandler = async (req, res) => {
             errors,
         });
     } catch (error) {
+        console.log(error)
         logger.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ error: "internal server error" });
     }
 }
 export const getConversationMessages: RequestHandler = async (req, res) => {
@@ -233,7 +234,7 @@ export const getMessengerList: RequestHandler = async (req, res) => {
         });
     } catch (error) {
         logger.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ error: error });
     }
 }
 
@@ -249,13 +250,13 @@ export const sendImageMessages: RequestHandler = async (req, res) => {
             if (err) {
                 const message = 'An error occurred during file upload';
                 logger.error(err, message);
-                return res.status(500).json({ error: message });
+                return res.status(500).json({ error: message })
             }
 
-            const recipients: string[] = req.body.recipients || [];
+            const recipients: string[] = req.body.recipients || []
 
             if (!recipients.length) {
-                return res.status(400).json({ error: 'Recipient JIDs are required' });
+                return res.status(400).json({ error: 'Recipient JIDs are required' })
             }
 
             const fileData = {
@@ -264,42 +265,43 @@ export const sendImageMessages: RequestHandler = async (req, res) => {
                 newName: req.file?.filename,
                 originalName: req.file?.originalname,
                 url: req.file?.path,
-            };
+            }
 
-            const fileType = 'image';
-            const caption = req.body.caption || '';
-            const delay = req.body.delay || 5000;
+            const fileType = 'image'
+            const caption = req.body.caption || ''
+            const delay = req.body.delay || 5000
 
-            const startTime = new Date().getTime();
-            if (recipients.length > 0) await delayMs(delay);
-            const endTime = new Date().getTime();
-            const delayElapsed = endTime - startTime;
-            logger.info(`Delay of ${delay} milliseconds elapsed: ${delayElapsed} milliseconds`);
+            const startTime = new Date().getTime()
+            if (recipients.length > 0) await delayMs(delay)
+            const endTime = new Date().getTime()
+            const delayElapsed = endTime - startTime
+            logger.info(`Delay of ${delay} milliseconds elapsed: ${delayElapsed} milliseconds`)
 
             const { results, errors } = await sendMediaFile(
                 session,
                 recipients,
                 fileData,
                 fileType,
-                caption,
-            );
+                caption
+            )
 
             res.status(errors.length > 0 ? 500 : 200).json({
                 results,
-                errors,
-            });
-        });
+                errors
+            })
+        })
     } catch (error) {
-        logger.error(error);
-        res.status(500).json({ message: 'Internal server error' })
+        logger.error(error)
+        console.log(error)
+        res.status(500).json({ error: error })
     }
 }
 
 export const getIncomingMessages: RequestHandler = async (req, res) => {
     try {
-        const { sessionId } = req.params;
-        const { page = 1, pageSize = 25, phoneNumber, message, contactName } = req.query;
-        const offset = (Number(page) - 1) * Number(pageSize);
+        const { sessionId } = req.params
+        const { page = 1, pageSize = 25, phoneNumber, message, contactName } = req.query
+        const offset = (Number(page) - 1) * Number(pageSize)
 
         const messages = (
             await prisma.incomingMessage.findMany({
@@ -338,7 +340,7 @@ export const getIncomingMessages: RequestHandler = async (req, res) => {
                 },
                 orderBy: { updatedAt: 'desc' },
             })
-        ).map((m) => serializePrisma(m));
+        ).map((m) => serializePrisma(m))
 
         const totalMessages = await prisma.incomingMessage.count({
             where: {
@@ -367,11 +369,11 @@ export const getIncomingMessages: RequestHandler = async (req, res) => {
                         : undefined,
                 },
             },
-        });
+        })
 
-        const currentPage = Math.max(1, Number(page) || 1);
-        const totalPages = Math.ceil(totalMessages / Number(pageSize));
-        const hasMore = currentPage * Number(pageSize) < totalMessages;
+        const currentPage = Math.max(1, Number(page) || 1)
+        const totalPages = Math.ceil(totalMessages / Number(pageSize))
+        const hasMore = currentPage * Number(pageSize) < totalMessages
 
         res.status(200).json({
             data: messages,
@@ -381,18 +383,18 @@ export const getIncomingMessages: RequestHandler = async (req, res) => {
                 totalPages,
                 hasMore,
             },
-        });
+        })
     } catch (error) {
-        logger.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        logger.error(error)
+        res.status(500).json({ error: error })
     }
-};
+}
 
 export const getOutgoingMessages: RequestHandler = async (req, res) => {
     try {
-        const { sessionId } = req.params;
-        const { page = 1, pageSize = 25, phoneNumber, message, contactName } = req.query;
-        const offset = (Number(page) - 1) * Number(pageSize);
+        const { sessionId } = req.params
+        const { page = 1, pageSize = 25, phoneNumber, message, contactName } = req.query
+        const offset = (Number(page) - 1) * Number(pageSize)
 
         const messages = (
             await prisma.outgoingMessage.findMany({
@@ -431,7 +433,7 @@ export const getOutgoingMessages: RequestHandler = async (req, res) => {
                 },
                 orderBy: { updatedAt: 'desc' },
             })
-        ).map((m) => serializePrisma(m));
+        ).map((m) => serializePrisma(m))
 
         const totalMessages = await prisma.outgoingMessage.count({
             where: {
@@ -460,11 +462,11 @@ export const getOutgoingMessages: RequestHandler = async (req, res) => {
                         : undefined,
                 },
             },
-        });
+        })
 
-        const currentPage = Math.max(1, Number(page) || 1);
-        const totalPages = Math.ceil(totalMessages / Number(pageSize));
-        const hasMore = currentPage * Number(pageSize) < totalMessages;
+        const currentPage = Math.max(1, Number(page) || 1)
+        const totalPages = Math.ceil(totalMessages / Number(pageSize))
+        const hasMore = currentPage * Number(pageSize) < totalMessages
 
         res.status(200).json({
             data: messages,
@@ -474,9 +476,9 @@ export const getOutgoingMessages: RequestHandler = async (req, res) => {
                 totalPages,
                 hasMore,
             },
-        });
+        })
     } catch (error) {
-        logger.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        logger.error(error)
+        res.status(500).json({ error: error })
     }
-};
+}

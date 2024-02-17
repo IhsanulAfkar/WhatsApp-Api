@@ -1,6 +1,6 @@
 
 
-import { User as PrismaUser } from '@prisma/client';
+import { Device, User as PrismaUser } from '@prisma/client';
 import { BaileysEventMap } from '@whiskeysockets/baileys';
 // type authenticatedUser = {
 //     pkId;
@@ -33,7 +33,8 @@ type RefreshToken = {
 declare global {
     namespace Express {
         interface Request {
-            authenticatedUser: PrismaUser;
+            authenticatedUser: PrismaUser,
+            device: Device
         }
     }
 }
@@ -76,3 +77,8 @@ type SerializePrisma<T> = T extends Buffer
 export type MakeSerializedPrisma<T extends Record<string, any>> = {
     [K in keyof T]: SerializePrisma<T[K]>;
 };
+
+export type OrderDataTypes = {
+    productId: string,
+    quantity: number
+}

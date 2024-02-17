@@ -5,8 +5,11 @@ import prisma from "../utils/db";
 
 export const createContact: RequestHandler = async (req, res) => {
     try {
-        const { firstName, lastName, phone, email, gender, dob, labels, deviceId } = req.body
+        console.log("start")
+        const { firstName, lastName = '', phone, email = null, gender = null, deviceId } = req.body
+        console.log("pkid")
         const pkId = req.authenticatedUser.pkId
+        console.log("check contact")
         const existingContact = await prisma.contact.findFirst({
             where: {
                 phone,
@@ -28,9 +31,11 @@ export const createContact: RequestHandler = async (req, res) => {
                 message: 'Contact with this email or phone number already exists in your contact',
             })
         }
-
+        console.log("start transaction")
         await prisma.$transaction(async (transaction) => {
             // step 1: create contact
+
+            console.log("create contact transaction")
             const createdContact = await transaction.contact.create({
                 data: {
                     firstName,
@@ -42,6 +47,7 @@ export const createContact: RequestHandler = async (req, res) => {
                 },
             })
 
+            console.log("check device transaction")
             const existingDevice = await transaction.device.findUnique({
                 where: {
                     id: deviceId,
@@ -89,4 +95,37 @@ export const createContact: RequestHandler = async (req, res) => {
         logger.error(error)
         res.status(500).json({ message: 'Internal server error' })
     }
+}
+export const getAllContacts: RequestHandler = async (req, res) => {
+    try {
+        const userId = req.authenticatedUser.pkId
+        const deviceId = req.query.deviceId as string
+        if (deviceId) {
+            const checkDevice = await prisma.device.findFirst({
+                where: {
+                    AND: [{ id: deviceId }, { userId }]
+                }
+            })
+            return res.status(400).json({
+                message: "invalid deviceId"
+            })
+        }
+        const contacts = await prisma.contact.findMany({
+            where: {
+                contactDevices: {
+                    some: {
+                        device: {
+                            id: deviceId ?? undefined,
+                            userId
+                        }
+                    }
+                }
+            }
+        })
+        return res.status(200).json(contacts)
+    } catch (error) {
+        logger.error(error)
+        res.status(500).json({ message: 'Internal server error' })
+    }
+
 }
