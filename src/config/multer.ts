@@ -9,7 +9,7 @@ const memoryStorage = multer.memoryStorage();
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dir = `media/D${req.body.deviceId}`;
+        const dir = `media/D${req.authenticatedUser.id}`;
         if (!fs.existsSync(dir)) {
             try {
                 fs.mkdirSync(dir, { recursive: true });

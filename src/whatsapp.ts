@@ -41,6 +41,7 @@ export async function init() {
         select: { sessionId: true, deviceId: true, data: true },
         where: { id: { startsWith: SESSION_CONFIG_ID } },
     });
+    // sessions[0].data
 
     for (const { sessionId, deviceId, data } of sessions) {
         const { readIncomingMessages, ...socketConfig } = JSON.parse(data);
@@ -62,6 +63,7 @@ function shouldReconnect(sessionId: string) {
 type createInstanceOptions = {
     sessionId: string;
     deviceId: number;
+    userId?: string,
     res?: Response;
     SSE?: boolean;
     readIncomingMessages?: boolean;
@@ -75,6 +77,7 @@ export async function createInstance(options: createInstanceOptions) {
         res,
         readIncomingMessages = false,
         socketConfig,
+        userId
     } = options;
     const configID = `${SESSION_CONFIG_ID}-${sessionId}`;
     let connectionState: Partial<ConnectionState> = { connection: 'close' };
@@ -198,11 +201,18 @@ export async function createInstance(options: createInstanceOptions) {
 
             // ?back here: forbid duplicate phone numbers
             const phone = sock.user?.id.split(':')[0];
-
+            const updatedAt = new Date()
             await prisma.device.update({
                 where: { pkId: deviceId },
-                data: { phone, updatedAt: new Date() },
+                data: { phone, updatedAt },
             });
+            if (userId)
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: {
+                        phone, updatedAt
+                    }
+                })
         }
         if (connection === 'close') handleConnectionClose();
         handleConnectionUpdate();
@@ -224,6 +234,7 @@ export async function createInstance(options: createInstanceOptions) {
         }
 
         const io: Server = getSocketIO();
+        // console.log(connection)
         io.emit(`device:${device.id}:status`, connection);
     });
 

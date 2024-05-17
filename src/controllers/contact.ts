@@ -2,6 +2,7 @@ import { RequestHandler } from "express"
 import logger from "../config/logger"
 import { generateColor } from "../utils/color"
 import prisma from "../utils/db";
+import { isUUID } from "../utils/uuid";
 
 export const createContact: RequestHandler = async (req, res) => {
     try {
@@ -128,4 +129,143 @@ export const getAllContacts: RequestHandler = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' })
     }
 
+}
+export const getContact: RequestHandler = async (req, res) => {
+    try {
+        const contactId = req.params.contactId;
+        if (!isUUID(contactId)) {
+            return res.status(400).json({ message: 'Invalid contactId' });
+        }
+
+        const contact = await prisma.contact.findUnique({
+            where: {
+                id: contactId,
+            },
+            include: {
+                contactDevices: {
+                    select: {
+                        device: {
+                            select: { name: true, id: true },
+                        },
+                    },
+                },
+                contactGroups: {
+                    select: {
+                        group: {
+                            select: { name: true, id: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!contact) {
+            res.status(404).json({ message: 'Contact not found' });
+        }
+
+        res.status(200).json(contact);
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+export const updateContact: RequestHandler = async (req, res) => {
+    try {
+        const contactId = req.params.contactId;
+        const { firstName, lastName, phone, email, gender, deviceId } = req.body;
+
+        if (!isUUID(contactId)) {
+            return res.status(400).json({ message: 'Invalid contactId' });
+        }
+
+        await prisma.$transaction(async (transaction) => {
+            const existingContact = await prisma.contact.findUnique({
+                where: {
+                    id: contactId,
+                },
+                include: {
+                    contactDevices: {
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            });
+
+            if (!existingContact) {
+                return res.status(404).json({ message: 'Contact not found' });
+            }
+
+            // update contact
+            const updatedContact = await transaction.contact.update({
+                where: {
+                    pkId: existingContact.pkId,
+                },
+                data: {
+                    firstName,
+                    lastName,
+                    phone,
+                    email,
+                    gender,
+                    updatedAt: new Date(),
+                },
+            });
+
+            // update device
+            const existingDevice = await transaction.device.findUnique({
+                where: {
+                    id: deviceId,
+                },
+            });
+
+            if (!existingDevice) {
+                return res.status(404).json({ message: 'Device not found' });
+            }
+
+            await transaction.contactDevice.update({
+                where: { id: existingContact.contactDevices[0].id },
+                data: {
+                    deviceId: existingDevice.pkId,
+                },
+            });
+
+        });
+
+        res.status(200).json({ message: 'Contact updated successfully' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+export const deleteContacts: RequestHandler = async (req, res) => {
+    try {
+        const contactIds = req.body.contactIds;
+
+        const contactPromises = contactIds.map(async (contactId: string) => {
+            const existingContact = await prisma.contact.findUnique({
+                where: {
+                    id: contactId,
+                },
+            });
+
+            if (!existingContact) {
+                return res.status(404).json({ message: 'Contact not found' });
+            }
+
+            await prisma.contact.delete({
+                where: {
+                    pkId: existingContact.pkId,
+                },
+            });
+        });
+
+        // wait for all the Promises to settle (either resolve or reject)
+        await Promise.all(contactPromises);
+
+        res.status(200).json({ message: 'Device(s) deleted successfully' });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 }

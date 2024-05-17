@@ -1,0 +1,1 @@
+- ketika session null, send message 500

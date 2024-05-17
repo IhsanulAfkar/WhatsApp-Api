@@ -102,15 +102,15 @@ export const deleteDevices: RequestHandler = async (req, res) => {
                 },
             })
 
-            const subDirectoryPath = `media/D${deviceId}`
+            // const subDirectoryPath = `media/D${deviceId}`
 
-            fs.rm(subDirectoryPath, { recursive: true }, (err) => {
-                if (err) {
-                    console.error(`Error deleting sub-directory: ${err}`)
-                } else {
-                    console.log(`Sub-directory ${subDirectoryPath} is deleted successfully.`)
-                }
-            })
+            // fs.rm(subDirectoryPath, { recursive: true }, (err) => {
+            //     if (err) {
+            //         console.error(`Error deleting sub-directory: ${err}`)
+            //     } else {
+            //         console.log(`Sub-directory ${subDirectoryPath} is deleted successfully.`)
+            //     }
+            // })
 
             return { success: true }
         })

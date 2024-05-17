@@ -4,18 +4,15 @@ import prisma from "../utils/db";
 import { isUUID } from "../utils/uuid";
 
 export const deviceMiddleware: RequestHandler = async (req, res, next) => {
-    const deviceId = req.params.deviceId
+    // const deviceId = req.params.deviceId
     const userId = req.authenticatedUser.pkId
-    if (!deviceId)
-        return res.status(400).json({ message: "deviceId cannot be empty" })
-    if (!isUUID(deviceId))
-        return res.status(400).json({ message: "invalid deviceId" })
+
     try {
         const device = await prisma.device.findFirst({
-            where: { AND: [{ id: deviceId }, { userId }] }
+            where: { userId },
         })
         if (!device)
-            return res.status(400).json({ message: "invalid deviceId" })
+            return res.status(400).json({ message: "Device not connected" })
         req.device = device
         next()
     } catch (error) {

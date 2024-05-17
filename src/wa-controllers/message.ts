@@ -10,7 +10,7 @@ import { downloadMediaMessage, jidNormalizedUser } from '@whiskeysockets/baileys
 import logger from '../config/logger';
 import prisma, { transformPrisma } from '../utils/db'
 import { BaileysEventHandler } from '../types'
-// import { sendCampaignReply } from '../controllers/campaign'
+import { sendCampaignReply } from '../controllers/campaign'
 import { sendAutoReply } from '../controllers/autoReply';
 import fs from 'fs'
 import { Server } from 'socket.io';
@@ -57,7 +57,10 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                         if (!message.broadcast) {
                             const jid = jidNormalizedUser(message.key.remoteJid!);
                             const data: any = transformPrisma(message);
-                            console.log(data);
+                            console.log('data', data);
+                            if (data.eventResponses) {
+                                delete data.eventResponses
+                            }
                             const messageText =
                                 data.message?.conversation ||
                                 data.message?.extendedTextMessage?.text ||
@@ -65,7 +68,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                 data.message?.documentMessage?.caption ||
                                 '';
 
-                            await prisma.message.upsert({
+                            const messageStatus = await prisma.message.upsert({
                                 select: { pkId: true },
                                 create: { ...data, remoteJid: jid, id: message.key.id!, sessionId },
                                 update: { ...data },
@@ -77,7 +80,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                     },
                                 },
                             });
-
+                            console.log('messageStatus', messageStatus)
                             const contact = await prisma.contact.findFirst({
                                 where: {
                                     phone: jidNormalizedUser(message.key.remoteJid!).split('@')[0],
@@ -86,6 +89,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                     },
                                 },
                             });
+                            console.log('contact', contact)
 
                             if (data.message && !data.message.protocolMessage) {
                                 const dir = `media/S${sessionId}`;
@@ -145,7 +149,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                             },
                                         },
                                     });
-
+                                    console.log('insert to outgoingMessage', outgoingMessage)
                                     if (data.message.imageMessage) {
                                         const outputFilePath = data.message.imageMessage.fileName
                                             ? `${dir}/${outgoingMessage.id
@@ -200,7 +204,8 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
 
                                 } else {
                                     logger.warn({ sessionId, data }, 'incoming messages');
-                                    // sendCampaignReply(sessionId, message);
+                                    sendCampaignReply(sessionId, message);
+                                    
                                     if (!message?.key?.remoteJid?.includes('@g.us')) {
                                         sendAutoReply(sessionId, message)
                                     }
@@ -282,6 +287,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                         }
                     } catch (e) {
                         logger.error(e, 'An error occured during message upsert');
+                        console.log(e)
                     }
                 }
                 break;

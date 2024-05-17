@@ -8,6 +8,7 @@ export const createSession: RequestHandler = async (req, res) => {
     try {
         const { deviceId } = req.body
         const sessionId = generateUuid()
+        const userId = req.authenticatedUser.id
         const device = await prisma.device.findUnique({
             where: { id: deviceId }
         })
@@ -21,7 +22,7 @@ export const createSession: RequestHandler = async (req, res) => {
             res.status(404).json({ message: 'Device already linked' })
         }
 
-        createInstance({ sessionId, deviceId: device.pkId, res })
+        createInstance({ sessionId, deviceId: device.pkId, res, userId })
     } catch (error) {
         logger.error(error)
         return res.status(500).json({ error: error })

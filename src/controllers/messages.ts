@@ -114,10 +114,10 @@ export const getConversationMessages: RequestHandler = async (req, res) => {
                 },
             },
         })
-
+        console.log(outgoingMessages)
         // Combine incoming and outgoing messages into one array
         const allMessages = [...incomingMessages, ...outgoingMessages]
-        logger.debug(allMessages)
+        // logger.debug(allMessages)
 
         // Sort the combined messages by timestamp (receivedAt or createdAt)
         sort == 'asc'
@@ -151,6 +151,7 @@ export const getMessengerList: RequestHandler = async (req, res) => {
     try {
         const { sessionId } = req.params;
         const { page = 1, pageSize = 25 } = req.query;
+        const userId = req.authenticatedUser.pkId
         const sort = req.query.sort as string;
         const offset = (Number(page) - 1) * Number(pageSize);
 
@@ -169,7 +170,18 @@ export const getMessengerList: RequestHandler = async (req, res) => {
             },
             select: { to: true, createdAt: true, contact: true },
         });
-
+        const contacts = await prisma.contact.findMany({
+            where: {
+                contactDevices: {
+                    some: {
+                        device: {
+                            userId
+                        }
+                    }
+                }
+            }
+        })
+        console.log(contacts)
         type Message = {
             from?: string;
             createdAt: Date;
@@ -189,7 +201,7 @@ export const getMessengerList: RequestHandler = async (req, res) => {
                 delete message.to;
             }
         }
-        logger.debug(allMessages);
+        // logger.debug(allMessages);
 
         // Sort the combined messages by timestamp (receivedAt or createdAt)
         sort == 'asc'
@@ -201,19 +213,26 @@ export const getMessengerList: RequestHandler = async (req, res) => {
 
         for (const message of allMessages) {
             const { createdAt, phone, contact } = message;
-
+            const trimPhone = phone?.split('@')[0]
             // Incoming message
-            if (!uniqueRecipients.has(phone) || uniqueRecipients.get(phone).createdAt < createdAt) {
-                uniqueRecipients.set(phone, { createdAt, contact });
+            if (!uniqueRecipients.has(trimPhone) || uniqueRecipients.get(trimPhone).createdAt < createdAt) {
+                uniqueRecipients.set(trimPhone, { createdAt, contact });
             }
         }
-
+        // same for contacts
+        for (const contact of contacts) {
+            const { phone, createdAt } = contact
+            if (!uniqueRecipients.has(phone) || uniqueRecipients.get(phone).createdAt < createdAt)
+                uniqueRecipients.set(phone, { createdAt, contact })
+        }
+        // console.log(uniqueRecipients)
         // Convert the map back to an array of objects
         const uniqueMessages = Array.from(uniqueRecipients, ([key, value]) => ({
-            phone: key.split('@')[0],
+            phone: key,
             createdAt: value.createdAt,
             contact: value.contact,
         }));
+
 
         // Apply pagination
         const messages = uniqueMessages.slice(offset, offset + Number(pageSize));
@@ -395,46 +414,51 @@ export const getOutgoingMessages: RequestHandler = async (req, res) => {
         const { sessionId } = req.params
         const { page = 1, pageSize = 25, phoneNumber, message, contactName } = req.query
         const offset = (Number(page) - 1) * Number(pageSize)
-
-        const messages = (
-            await prisma.outgoingMessage.findMany({
-                take: Number(pageSize),
-                skip: offset,
-                where: {
-                    sessionId,
-                    to: { contains: phoneNumber ? phoneNumber.toString() : undefined },
-                    message: {
-                        contains: message ? message.toString() : undefined,
-                        mode: 'insensitive',
-                    },
-                    contact: {
-                        OR: contactName
-                            ? [
-                                {
-                                    firstName: {
-                                        contains: contactName.toString(),
-                                        mode: 'insensitive',
-                                    },
-                                },
-                                {
-                                    lastName: {
-                                        contains: contactName.toString(),
-                                        mode: 'insensitive',
-                                    },
-                                },
-                            ]
-                            : undefined,
-                    },
-                },
-                include: {
-                    contact: {
-                        select: { firstName: true, lastName: true, colorCode: true },
-                    },
-                },
-                orderBy: { updatedAt: 'desc' },
-            })
-        ).map((m) => serializePrisma(m))
-
+        console.log(sessionId)
+        const messages = await prisma.outgoingMessage.findMany({
+            where: {
+                sessionId
+            }
+        })
+        // const messages = (
+        //     await prisma.outgoingMessage.findMany({
+        //         take: Number(pageSize),
+        //         skip: offset,
+        //         where: {
+        //             sessionId,
+        //             to: { contains: phoneNumber ? phoneNumber.toString() : undefined },
+        //             message: {
+        //                 contains: message ? message.toString() : undefined,
+        //                 mode: 'insensitive',
+        //             },
+        //             contact: {
+        //                 OR: contactName
+        //                     ? [
+        //                         {
+        //                             firstName: {
+        //                                 contains: contactName.toString(),
+        //                                 mode: 'insensitive',
+        //                             },
+        //                         },
+        //                         {
+        //                             lastName: {
+        //                                 contains: contactName.toString(),
+        //                                 mode: 'insensitive',
+        //                             },
+        //                         },
+        //                     ]
+        //                     : undefined,
+        //             },
+        //         },
+        //         include: {
+        //             contact: {
+        //                 select: { firstName: true, lastName: true, colorCode: true },
+        //             },
+        //         },
+        //         orderBy: { updatedAt: 'desc' },
+        //     })
+        // ).map((m) => serializePrisma(m))
+        console.log('outgoing', messages)
         const totalMessages = await prisma.outgoingMessage.count({
             where: {
                 sessionId,

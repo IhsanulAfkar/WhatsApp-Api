@@ -7,11 +7,11 @@ import { generateUuid, isUUID } from "../utils/uuid";
 import { ORDER_STATUS } from '../utils/constants'
 import { checkDevice } from "../utils/checkDevice";
 export const createOrder: RequestHandler = async (req, res) => {
-	const { phone, deviceId, name = '' } = req.body
+	const { phone, deviceId, name = '', notes = '' } = req.body
 	const orders: OrderDataTypes[] = req.body.orders
 	const userId = req.authenticatedUser.pkId
 	if (!phone || orders.length === 0 || !deviceId)
-		return res.status(400).json({ message: "phone and order cannot be empty" })
+		return res.status(400).json({ message: "phone, order, adn deviceId cannot be empty" })
 	try {
 		const checkDevice = await prisma.device.findFirst({
 			where: {
@@ -54,6 +54,7 @@ export const createOrder: RequestHandler = async (req, res) => {
 					contactId: existingContact ? existingContact.pkId : null,
 					id: generateUuid(),
 					name: name || `${phone}'s order`,
+					notes: notes,
 					deviceId: checkDevice.pkId,
 					OrderProduct: {
 						create: listProduct.map(prod => ({
@@ -81,25 +82,45 @@ export const createOrder: RequestHandler = async (req, res) => {
 }
 
 export const getAllOrders: RequestHandler = async (req, res) => {
-	const deviceId = req.query.deviceId as string
 	const userId = req.authenticatedUser.pkId
 	const status = req.query.status as string
-	if (!status && !ORDER_STATUS.includes(status)) {
+	if (status && !ORDER_STATUS.includes(status)) {
 		return res.status(400).json({ message: "invalid order status" })
 	}
 	try {
-		let orders: Order[]
-		let device: Device | null = null
-		if (deviceId)
-			device = await checkDevice(deviceId, userId)
-
-		orders = await prisma.order.findMany({
+		const device = await prisma.device.findFirst({
+			where: { userId }
+		})
+		if (!device) {
+			return res.status(400).json({ message: "Device not exist" })
+		}
+		const orders = await prisma.order.findMany({
 			where: {
-				deviceId: device ? device.pkId : undefined,
+				deviceId: device.pkId,
 				status: status as any ?? undefined
+			},
+			include: {
+				OrderProduct: {
+					include: {
+						product: true
+					}
+				}
+			},
+			orderBy: {
+				createdAt: 'desc'
 			}
 		})
-		return res.status(200).json({ data: orders })
+		const newOrders = orders.map(order => {
+			let price = 0
+			order.OrderProduct.map(ordProd => {
+				price += ordProd.product.price * ordProd.quantity
+			})
+			return {
+				...order,
+				total: price
+			}
+		})
+		return res.status(200).json(newOrders)
 	} catch (error) {
 		logger.error(error)
 		return res.status(500).json({ error: error })
@@ -205,7 +226,8 @@ export const changeOrderStatus: RequestHandler = async (req, res) => {
 			}
 		})
 	} catch (error) {
-		logger.error(error)
+		// logger.error(error)
+		console.log(error)
 		return res.status(500).json({ error: error })
 	}
 }
@@ -219,10 +241,23 @@ export const getOrder: RequestHandler = async (req, res) => {
 			where: {
 				id: orderId,
 				deviceId: device.pkId
+			},
+			include: {
+				OrderProduct: {
+					include: {
+						product: true
+					}
+				}
 			}
 		})
-
-		return res.status(200).json(order)
+		if (!order) {
+			return res.status(404).json({ message: 'Order not found' })
+		}
+		let total = 0
+		order.OrderProduct.forEach(orderProd => {
+			total += orderProd.quantity * orderProd.product.price
+		})
+		return res.status(200).json({ ...order, total })
 	} catch (error) {
 		logger.error(error)
 		return res.status(500).json({ error: error })
