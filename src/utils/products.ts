@@ -257,3 +257,4 @@ export const initProducts = async (userId: number) => {
         return error
     }
 }
+

@@ -12,6 +12,7 @@ import refresh from 'passport-oauth2-refresh'
 import { generateOTPSecret, generateOTPToken, sendEmail, verifyOTPToken } from "../utils/authHelper"
 import { RefreshToken } from "../types"
 import { initProducts } from "../utils/products"
+import { createAutoReply } from "./autoReply"
 export const register: RequestHandler = async (req, res) => {
     try {
         const {
@@ -68,7 +69,8 @@ export const register: RequestHandler = async (req, res) => {
         })
         // insert products
         const result = await initProducts(newUser.pkId)
-        if (result) {
+        const result2 = await createAutoReply(newUser.pkId)
+        if (result || result2) {
             res.status(500).json({ "message": "server error" })
         }
         const accessToken = generateAccessToken(newUser)

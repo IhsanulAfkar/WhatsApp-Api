@@ -184,13 +184,19 @@ export const changeOrderStatus: RequestHandler = async (req, res) => {
 				const totalPrice = allProducts.reduce((accumulator, item) => {
 					return accumulator + (item.quantity * item.product.price)
 				}, 0)
-				const newTransaction = await prisma.transaction.create({
+				await tx.transaction.create({
 					data: {
 						phoneNumber: newOrder.phoneNumber,
 						contactId: newOrder.contactId || undefined,
 						orderData: JSON.stringify(allProducts.map(item => ({ name: item.product.name, quantity: item.quantity, price: item.product.price }))),
 						userId,
 						totalPrice,
+					}
+				})
+				tx.chatbotSession.update({
+					where: { phone: newOrder.phoneNumber },
+					data: {
+						isActive: true
 					}
 				})
 				return res.status(200).json({ message: "order completed" })

@@ -170,7 +170,6 @@ export const createCampaignMessage: RequestHandler = async (req, res) => {
     }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCampaignReply(sessionId: any, data: any) {
     try {
         const session = getInstance(sessionId)!;
@@ -243,10 +242,12 @@ export async function sendCampaignReply(sessionId: any, data: any) {
                 device: { select: { contactDevices: { select: { contact: true } } } },
             },
         });
-
+        if (!matchingCampaign) {
+            return false
+        }
         console.log(matchingCampaign);
 
-        const isMember = matchingCampaign?.group.contactGroups.some(
+        const isMember = matchingCampaign.group.contactGroups.some(
             (contactGroup) => contactGroup.contact.phone === phoneNumber,
         );
 
@@ -338,6 +339,7 @@ export async function sendCampaignReply(sessionId: any, data: any) {
                 }
             });
         }
+        return true
     } catch (error) {
         logger.error(error);
         throw error;

@@ -8,27 +8,36 @@ generator client {
 }
 
 model User {
-  pkId            Int       @id @default(autoincrement())
-  id              String    @unique @default(uuid())
-  firstName       String    @map("first_name") @db.VarChar(128)
-  lastName        String?   @map("last_name") @db.VarChar(128)
-  username        String    @unique @db.VarChar(128)
-  phone           String?   @unique @db.VarChar(20)
-  email           String    @unique @db.VarChar(255)
-  password        String    @db.VarChar(255)
-  accountApiKey   String?   @unique @map("account_api_key") @db.VarChar(128)
-  googleId        String?   @unique @map("google_id") @db.VarChar(128)
-  emailOtpSecret  String?   @map("email_otp_secret") @db.VarChar(255)
-  refreshToken    String?   @unique @map("refresh_token") @db.VarChar(255)
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @default(now()) @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
-  emailVerifiedAt DateTime? @map("email_verfied_at")
+  pkId            Int           @id @default(autoincrement())
+  id              String        @unique @default(uuid())
+  firstName       String        @map("first_name") @db.VarChar(128)
+  lastName        String?       @map("last_name") @db.VarChar(128)
+  username        String        @unique @db.VarChar(128)
+  phone           String?       @unique @db.VarChar(20)
+  email           String        @unique @db.VarChar(255)
+  password        String        @db.VarChar(255)
+  accountApiKey   String?       @unique @map("account_api_key") @db.VarChar(128)
+  googleId        String?       @unique @map("google_id") @db.VarChar(128)
+  emailOtpSecret  String?       @map("email_otp_secret") @db.VarChar(255)
+  refreshToken    String?       @unique @map("refresh_token") @db.VarChar(255)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @default(now()) @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+  emailVerifiedAt DateTime?     @map("email_verfied_at")
   devices         Device[]
   Group           Group[]
+  Transaction     Transaction[]
+  Product         Product[]
+  AutoReply       AutoReply?
+}
 
-  Transaction Transaction[]
-  Product     Product[]
+model AutoReply {
+  pkId         Int     @id @default(autoincrement())
+  id           String  @unique @default(uuid())
+  storeName    String? @db.VarChar(50)
+  paymentReply String?
+  userId       Int     @unique
+  user         User    @relation(fields: [userId], references: [pkId], onDelete: Cascade)
 }
 
 model Device {
@@ -38,12 +47,12 @@ model Device {
   phone          String?         @db.VarChar(20)
   apiKey         String          @unique @map("api_key") @db.VarChar(255)
   status         String          @default("close") @map("status") @db.VarChar(20)
+  isAutoReply    Boolean         @default(false)
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @default(now()) @map("updated_at")
   userId         Int
   user           User            @relation(fields: [userId], references: [pkId], onDelete: Cascade)
   sessions       Session[]
-  autoReplies    AutoReply[]
   campaigns      Campaign[]
   contactDevices ContactDevice[]
   Broadcast      Broadcast[]
@@ -145,6 +154,13 @@ model OutgoingMessage {
   @@unique([sessionId, to, id], map: "unique_outgoing_message_key_per_session_id")
 }
 
+model ChatbotSession {
+  pkId     Int     @id @default(autoincrement())
+  id       String  @unique @default(uuid())
+  phone    String  @unique
+  isActive Boolean @default(true)
+}
+
 model IncomingMessage {
   pkId       Int      @id @default(autoincrement())
   id         String   @unique
@@ -174,21 +190,6 @@ model Broadcast {
   device     Device   @relation(fields: [deviceId], references: [pkId], onDelete: Cascade)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @map("updated_at")
-}
-
-model AutoReply {
-  pkId       Int      @id @default(autoincrement())
-  id         String   @unique @default(uuid())
-  name       String   @db.VarChar(128)
-  requests   String[]
-  response   String   @db.VarChar(255)
-  status     Boolean  @default(true)
-  recipients String[]
-  mediaPath  String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @default(now()) @map("updated_at")
-  deviceId   Int
-  device     Device   @relation(fields: [deviceId], references: [pkId], onDelete: Cascade)
 }
 
 model Campaign {
@@ -293,7 +294,6 @@ model OrderProduct {
 enum OrderStatus {
   CREATED
   PROCESSING
-  DELIVERED
   COMPLETED
   CANCELLED
 }

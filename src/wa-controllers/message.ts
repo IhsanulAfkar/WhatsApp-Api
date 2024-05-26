@@ -14,6 +14,7 @@ import { sendCampaignReply } from '../controllers/campaign'
 import { sendAutoReply } from '../controllers/autoReply';
 import fs from 'fs'
 import { Server } from 'socket.io';
+import { getJid } from '../whatsapp';
 
 const getKeyAuthor = (key: WAMessageKey | undefined | null) =>
     (key?.fromMe ? 'me' : key?.participant || key?.remoteJid) || '';
@@ -54,6 +55,7 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
             case 'notify':
                 for (const message of messages) {
                     try {
+
                         if (!message.broadcast) {
                             const jid = jidNormalizedUser(message.key.remoteJid!);
                             const data: any = transformPrisma(message);
@@ -204,10 +206,10 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
 
                                 } else {
                                     logger.warn({ sessionId, data }, 'incoming messages');
-                                    sendCampaignReply(sessionId, message);
-                                    
-                                    if (!message?.key?.remoteJid?.includes('@g.us')) {
-                                        sendAutoReply(sessionId, message)
+                                    const isCampaign = await sendCampaignReply(sessionId, message);
+
+                                    if (!message?.key?.remoteJid?.includes('@g.us') && !isCampaign) {
+                                        sendAutoReply(jid.split('@')[0], sessionId, message)
                                     }
                                     const incomingMessage = await prisma.incomingMessage.create({
                                         data: {

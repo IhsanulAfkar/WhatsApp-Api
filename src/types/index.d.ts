@@ -82,3 +82,7 @@ export type OrderDataTypes = {
     productId: string,
     quantity: number
 }
+export type ChatbotResponse = {
+    intent: string,
+    confidence: number
+}

@@ -114,7 +114,7 @@ export const editProduct: RequestHandler = async (req, res) => {
                     id: productId
                 },
                 data: {
-                    description: description,
+                    description: description || null,
                     media: req.file?.path,
                     price: parseFloat(price) || oldProduct.price,
                     amount: parseInt(amount) || oldProduct.amount
