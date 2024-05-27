@@ -175,6 +175,7 @@ export async function createInstance(options: createInstanceOptions) {
         },
         // @ts-ignore
         logger,
+        version: [2, 2413, 1],
         markOnlineOnConnect: false,
 
         getMessage: async (key) => {
