@@ -21,7 +21,7 @@ export const register: RequestHandler = async (req, res) => {
             username,
             email,
             password,
-            phone,
+            phoneNumber = "",
             confirmPassword
         } = req.body
         if (password !== confirmPassword) {
@@ -33,17 +33,17 @@ export const register: RequestHandler = async (req, res) => {
         const [checkUsername, checkEmail, checkPhone] = await Promise.all([
             await prisma.user.findFirst({
                 where: {
-                    username
+                    username: username
                 }
             }),
             await prisma.user.findFirst({
                 where: {
-                    email
+                    email: email
                 }
             }),
             await prisma.user.findFirst({
                 where: {
-                    phone
+                    phone: phoneNumber
                 }
             })
         ])
@@ -62,7 +62,7 @@ export const register: RequestHandler = async (req, res) => {
                 username,
                 firstName,
                 lastName,
-                phone,
+                phone: phoneNumber,
                 password: hashPassword,
                 email,
             }
@@ -85,7 +85,7 @@ export const register: RequestHandler = async (req, res) => {
         // just to be safe, check if phone exist
         const findDevice = await prisma.device.findFirst({
             where: {
-                phone
+                phone: phoneNumber
             }
         })
         if (findDevice) {
