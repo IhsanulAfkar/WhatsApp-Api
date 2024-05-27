@@ -176,8 +176,8 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                     { quoted: data },
                 );
             } else {
-                // console.log(result.status)
-                // console.log(await result.text())
+                console.log(result.status)
+                console.log(await result.text())
 
             }
         }
