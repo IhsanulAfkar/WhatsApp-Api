@@ -184,58 +184,65 @@ export async function createInstance(options: createInstanceOptions) {
             return (data?.message || undefined) as proto.IMessage | undefined;
         },
     });
-
+    console.log('create wa socket...')
     const store = new Store(sessionId, sock.ev);
     instances.set(sessionId, { ...sock, destroy, store });
 
     sock.ev.on('creds.update', saveCreds);
     sock.ev.on('connection.update', async (update) => {
-        logger.debug(update);
+        // logger.debug(update);
+        console.log(update)
+        try {
 
-        connectionState = update;
-        const { connection } = update;
 
-        if (connection === 'open') {
-            retries.delete(sessionId);
-            SSEQRGenerations.delete(sessionId);
+            connectionState = update;
+            const { connection } = update;
 
-            // ?back here: forbid duplicate phone numbers
-            const phone = sock.user?.id.split(':')[0];
-            const updatedAt = new Date()
-            await prisma.device.update({
+            if (connection === 'open') {
+                retries.delete(sessionId);
+                SSEQRGenerations.delete(sessionId);
+
+                // ?back here: forbid duplicate phone numbers
+                const phone = sock.user?.id.split(':')[0];
+                const updatedAt = new Date()
+                await prisma.device.update({
+                    where: { pkId: deviceId },
+                    data: { phone, updatedAt },
+                });
+                if (userId)
+                    await prisma.user.update({
+                        where: { id: userId },
+                        data: {
+                            phone, updatedAt
+                        }
+                    })
+
+            }
+            if (connection === 'close') handleConnectionClose();
+            handleConnectionUpdate();
+
+            // back here: Record to update not found
+            const device = await prisma.device.update({
                 where: { pkId: deviceId },
-                data: { phone, updatedAt },
+                data: { status: connection, updatedAt: new Date() },
             });
-            if (userId)
-                await prisma.user.update({
-                    where: { id: userId },
+
+            if (connection) {
+                await prisma.deviceLog.create({
                     data: {
-                        phone, updatedAt
-                    }
-                })
+                        sessionId,
+                        deviceId,
+                        status: connection,
+                    },
+                });
+            }
+
+            const io: Server = getSocketIO();
+            // console.log(connection)
+            io.emit(`device:${device.id}:status`, connection);
+        } catch (error) {
+            console.log(error)
         }
-        if (connection === 'close') handleConnectionClose();
-        handleConnectionUpdate();
-
-        // back here: Record to update not found
-        const device = await prisma.device.update({
-            where: { pkId: deviceId },
-            data: { status: connection, updatedAt: new Date() },
-        });
-
-        if (connection) {
-            await prisma.deviceLog.create({
-                data: {
-                    sessionId,
-                    deviceId,
-                    status: connection,
-                },
-            });
-        }
-
-        const io: Server = getSocketIO();
-        // console.log(connection)
-        io.emit(`device:${device.id}:status`, connection);
     });
 
     if (readIncomingMessages) {

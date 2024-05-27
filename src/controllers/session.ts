@@ -21,7 +21,7 @@ export const createSession: RequestHandler = async (req, res) => {
         if (checkSession) {
             res.status(404).json({ message: 'Device already linked' })
         }
-
+        console.log("create instance...")
         createInstance({ sessionId, deviceId: device.pkId, res, userId })
     } catch (error) {
         logger.error(error)
