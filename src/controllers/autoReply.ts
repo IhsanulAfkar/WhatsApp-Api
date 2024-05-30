@@ -81,6 +81,44 @@ export const createAutoReply = async (userId: number) => {
         return error
     }
 }
+export const getChatbotSession: RequestHandler = async (req, res) => {
+    const { sessionId, phone } = req.params
+
+    const chatbotSession = await prisma.chatbotSession.findFirst({
+        where: {
+            sessionId, phone
+        }
+    })
+    if (!chatbotSession) {
+        res.status(404).json({ message: "chatbot session not found" })
+        return
+    }
+    res.status(200).json(chatbotSession)
+
+}
+export const updateChatbotSession: RequestHandler = async (req, res) => {
+    const { sessionId, phone } = req.params
+    const { status } = req.body
+    const chatbotSession = await prisma.chatbotSession.findFirst({
+        where: {
+            sessionId, phone
+        }
+    })
+    if (!chatbotSession) {
+        res.status(404).json({ message: "chatbot session not found" })
+        return
+    }
+
+    await prisma.chatbotSession.update({
+        where: {
+            sessionId, phone
+        },
+        data: {
+            isActive: status
+        }
+    })
+    res.status(200).json({ message: "success update status" })
+}
 export async function sendAutoReply(phone: string, sessionId: any, data: any) {
     try {
         const session = getInstance(sessionId)!;
@@ -101,6 +139,7 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 create: {
                     phone,
                     isActive: false,
+                    sessionId
                 }
             })
             const responseText = "Fitur chatbot telah dimatikan, mohon menunggu admin untuk membalas pesan anda..."
@@ -122,15 +161,18 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 }
             }
         })
+        console.log("checkAR")
+        console.log(checkAR)
         if (checkAR?.isAutoReply) {
             // check if chatbot session active
             let chatbotSession: ChatbotSession | null
             chatbotSession = await prisma.chatbotSession.findFirst({
-                where: { phone }
+                where: { phone, sessionId }
             })
             if (!chatbotSession) {
+                sessionId
                 chatbotSession = await prisma.chatbotSession.create({
-                    data: { phone }
+                    data: { phone, sessionId }
                 })
             }
             if (!chatbotSession.isActive) {
@@ -153,6 +195,7 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
             }
             // get response from chatbot
             // const replyText = "dummy chat";
+            console.log("send chatbot")
             const result = await fetch(process.env.CHATBOT_URL! + '/chat', {
                 method: "POST",
                 headers: {
@@ -241,5 +284,6 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
         // }
     } catch (error) {
         logger.error(error);
+        console.log(error)
     }
 }

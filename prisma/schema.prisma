@@ -155,10 +155,11 @@ model OutgoingMessage {
 }
 
 model ChatbotSession {
-  pkId     Int     @id @default(autoincrement())
-  id       String  @unique @default(uuid())
-  phone    String  @unique
-  isActive Boolean @default(true)
+  pkId      Int     @id @default(autoincrement())
+  id        String  @unique @default(uuid())
+  phone     String  @unique
+  sessionId String
+  isActive  Boolean @default(true)
 }
 
 model IncomingMessage {
