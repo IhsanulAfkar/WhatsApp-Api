@@ -7,5 +7,4 @@ router.get('/', controller.getAutoReply)
 router.put('/', controller.editAutoReply)
 router.get('/:sessionId/:phone', controller.getChatbotSession)
 router.put('/:sessionId/:phone', controller.updateChatbotSession)
-// router.get('/', controller.getDevices)
 export default router

@@ -10,7 +10,6 @@ import { getInstance, getJid, sendMediaFile } from "../whatsapp";
 import { replaceVariables } from "../utils/variableHelper";
 
 export const createBroadcast: RequestHandler = async (req, res) => {
-    // const subscription = req.subscription;
     try {
         diskUpload.single('media')(req, res, async (err: any) => {
             if (err) {
@@ -207,59 +206,6 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
         });
 
         res.status(200).json({ outgoingBroadcasts });
-    } catch (error) {
-        logger.error(error);
-    }
-};
-
-export const getBrodcastReplies: RequestHandler = async (req, res) => {
-    try {
-        const broadcastId = req.params.broadcastId;
-
-        if (!isUUID(broadcastId)) {
-            return res.status(400).json({ message: 'Invalid broadcastId' });
-        }
-
-        const broadcast = await prisma.broadcast.findUnique({
-            select: { recipients: true, createdAt: true },
-            where: { id: broadcastId },
-        });
-
-        if (!broadcast) {
-            return res.status(404).json('Broadcast not found');
-        }
-
-        const broadcastReplies = [];
-
-        const recipients = await getRecipients(broadcast);
-
-        for (const recipient of recipients) {
-            const incomingMessages = await prisma.incomingMessage.findFirst({
-                where: {
-                    from: `${recipient}@s.whatsapp.net`,
-                    updatedAt: {
-                        gte: broadcast.createdAt,
-                    },
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-                include: {
-                    contact: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            phone: true,
-                            colorCode: true
-                        },
-                    },
-                },
-            });
-            if (incomingMessages) {
-                broadcastReplies.push(incomingMessages);
-            }
-        }
-        res.status(200).json({ broadcastReplies });
     } catch (error) {
         logger.error(error);
     }
@@ -466,8 +412,7 @@ scheduleJob('*', async () => {
                 },
             });
         }
-        // logger.debug('Broadcast job is running...');
-        // console.log('Broadcast job is running')
+
     } catch (error) {
         logger.error(error, 'Error processing scheduled broadcasts');
         console.log(error, 'Error processing scheduled broadcasts');

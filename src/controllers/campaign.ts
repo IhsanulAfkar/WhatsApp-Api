@@ -525,56 +525,6 @@ export const getOutgoingCampaigns: RequestHandler = async (req, res) => {
     }
 };
 
-export const getCampaignReplies: RequestHandler = async (req, res) => {
-    try {
-        const campaignId = req.params.campaignId;
-
-        if (!isUUID(campaignId)) {
-            return res.status(400).json({ message: 'Invalid campaignId' });
-        }
-
-        const campaign = await prisma.campaign.findUnique({
-            select: { recipients: true, createdAt: true },
-            where: { id: campaignId },
-        });
-
-        if (!campaign) {
-            return res.status(404).json({ message: 'Campaign not found' });
-        }
-
-        const campaignReplies = [];
-
-        for (const recipient of campaign.recipients) {
-            const incomingMessages = await prisma.incomingMessage.findFirst({
-                where: {
-                    from: `${recipient}@s.whatsapp.net`,
-                    updatedAt: {
-                        gte: campaign.createdAt,
-                    },
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-                include: {
-                    contact: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            phone: true,
-                            colorCode: true,
-                        },
-                    },
-                },
-            });
-            if (incomingMessages) {
-                campaignReplies.push(incomingMessages);
-            }
-        }
-        res.status(200).json({ campaignReplies });
-    } catch (error) {
-        logger.error(error);
-    }
-};
 
 export const getCampaignMessage: RequestHandler = async (req, res) => {
     try {
@@ -652,71 +602,6 @@ export const getOutgoingCampaignMessages: RequestHandler = async (req, res) => {
     }
 };
 
-export const getCampaignMessageReplies: RequestHandler = async (req, res) => {
-    try {
-        const campaignMessageId = req.params.campaignMessageId;
-
-        if (!isUUID(campaignMessageId)) {
-            return res.status(400).json({ message: 'Invalid campaignMessageId' });
-        }
-
-        const campaignMessage = await prisma.campaignMessage.findUnique({
-            where: { id: campaignMessageId },
-            include: {
-                Campaign: {
-                    select: {
-                        group: {
-                            select: {
-                                contactGroups: { select: { contact: { select: { phone: true } } } },
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        if (!campaignMessage) {
-            return res.status(404).json({ message: 'Campaign message not found' });
-        }
-
-        const campaignMessageReplies = [];
-
-        const recipients = campaignMessage.Campaign.group.contactGroups.map(
-            (cg) => cg.contact.phone,
-        );
-
-        for (const recipient of recipients) {
-            const incomingMessages = await prisma.incomingMessage.findFirst({
-                where: {
-                    from: `${recipient}@s.whatsapp.net`,
-                    updatedAt: {
-                        gte: campaignMessage.createdAt,
-                    },
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-                include: {
-                    contact: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            phone: true,
-                            colorCode: true,
-                        },
-                    },
-                },
-            });
-            if (incomingMessages) {
-                campaignMessageReplies.push(incomingMessages);
-            }
-        }
-        res.status(200).json({ campaignMessageReplies });
-    } catch (error) {
-        logger.error(error);
-    }
-};
-
 export const updateCampaignMessage: RequestHandler = async (req, res) => {
     try {
         const id = req.params.campaignMessageId;
@@ -783,10 +668,10 @@ export const deleteCampaignMessages: RequestHandler = async (req, res) => {
 
 export const updateCampaign: RequestHandler = async (req, res) => {
     try {
-        const id = req.params.campaignMessageId;
+        const id = req.params.campaignId;
 
         if (!isUUID(id)) {
-            return res.status(400).json({ message: 'Invalid campaignMessageId' });
+            return res.status(400).json({ message: 'Invalid campaignId' });
         }
 
         diskUpload.single('media')(req, res, async (err: any) => {

@@ -97,7 +97,7 @@ export const getChatbotSession: RequestHandler = async (req, res) => {
 
 }
 export const updateChatbotSession: RequestHandler = async (req, res) => {
-    const { sessionId, phone } = req.params
+    const { sessionId = '', phone } = req.params
     const { status } = req.body
     const chatbotSession = await prisma.chatbotSession.findFirst({
         where: {
@@ -170,7 +170,6 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 where: { phone, sessionId }
             })
             if (!chatbotSession) {
-                sessionId
                 chatbotSession = await prisma.chatbotSession.create({
                     data: { phone, sessionId }
                 })

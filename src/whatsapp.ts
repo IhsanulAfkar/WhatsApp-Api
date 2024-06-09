@@ -194,8 +194,6 @@ export async function createInstance(options: createInstanceOptions) {
         // logger.debug(update);
         console.log(update)
         try {
-
-
             connectionState = update;
             const { connection } = update;
 
