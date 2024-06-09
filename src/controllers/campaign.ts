@@ -604,8 +604,7 @@ export const getOutgoingCampaignMessages: RequestHandler = async (req, res) => {
 
 export const updateCampaignMessage: RequestHandler = async (req, res) => {
     try {
-        const id = req.params.campaignMessageId;
-
+        const id = req.params.campaignMessageId
         if (!isUUID(id)) {
             return res.status(400).json({ message: 'Invalid campaignMessageId' });
         }
@@ -725,7 +724,7 @@ export const updateCampaign: RequestHandler = async (req, res) => {
                 });
             }
 
-            const device = await prisma.device.findUnique({
+            const device = await prisma.device.findFirst({
                 where: { id: deviceId },
                 include: { sessions: { select: { sessionId: true } } },
             });
