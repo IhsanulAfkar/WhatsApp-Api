@@ -724,7 +724,8 @@ export const updateCampaign: RequestHandler = async (req, res) => {
                 });
             }
 
-            const device = await prisma.device.findFirst({
+            const device = await prisma.device.findUnique({
+                // error
                 where: { id: deviceId },
                 include: { sessions: { select: { sessionId: true } } },
             });

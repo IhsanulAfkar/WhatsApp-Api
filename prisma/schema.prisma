@@ -41,23 +41,24 @@ model AutoReply {
 }
 
 model Device {
-  pkId           Int             @id @default(autoincrement())
-  id             String          @unique @default(uuid())
-  name           String          @db.VarChar(128)
-  phone          String?         @db.VarChar(20)
-  apiKey         String          @unique @map("api_key") @db.VarChar(255)
-  status         String          @default("close") @map("status") @db.VarChar(20)
-  isAutoReply    Boolean         @default(false)
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @default(now()) @map("updated_at")
+  pkId           Int              @id @default(autoincrement())
+  id             String           @unique @default(uuid())
+  name           String           @db.VarChar(128)
+  phone          String?          @db.VarChar(20)
+  apiKey         String           @unique @map("api_key") @db.VarChar(255)
+  status         String           @default("close") @map("status") @db.VarChar(20)
+  isAutoReply    Boolean          @default(false)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @map("updated_at")
   userId         Int
-  user           User            @relation(fields: [userId], references: [pkId], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [pkId], onDelete: Cascade)
   sessions       Session[]
   campaigns      Campaign[]
   contactDevices ContactDevice[]
   Broadcast      Broadcast[]
   DeviceLog      DeviceLog[]
   Order          Order[]
+  ChatbotSession ChatbotSession[]
 }
 
 model DeviceLog {
@@ -155,11 +156,12 @@ model OutgoingMessage {
 }
 
 model ChatbotSession {
-  pkId      Int     @id @default(autoincrement())
-  id        String  @unique @default(uuid())
-  phone     String  @unique
-  sessionId String
-  isActive  Boolean @default(true)
+  pkId     Int     @id @default(autoincrement())
+  id       String  @unique @default(uuid())
+  phone    String  @unique
+  deviceId String
+  isActive Boolean @default(true)
+  device   Device  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 }
 
 model IncomingMessage {
@@ -246,7 +248,7 @@ model Product {
   userId      Int
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @map("updated_at")
-  user        User     @relation(fields: [userId], references: [pkId])
+  user        User     @relation(fields: [userId], references: [pkId], onDelete: Cascade)
 
   OrderProduct OrderProduct[]
 }

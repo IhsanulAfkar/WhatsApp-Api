@@ -82,11 +82,11 @@ export const createAutoReply = async (userId: number) => {
     }
 }
 export const getChatbotSession: RequestHandler = async (req, res) => {
-    const { sessionId, phone } = req.params
+    const { deviceId, phone } = req.params
 
     const chatbotSession = await prisma.chatbotSession.findFirst({
         where: {
-            sessionId, phone
+            deviceId, phone
         }
     })
     if (!chatbotSession) {
@@ -97,11 +97,11 @@ export const getChatbotSession: RequestHandler = async (req, res) => {
 
 }
 export const updateChatbotSession: RequestHandler = async (req, res) => {
-    const { sessionId = '', phone } = req.params
+    const { deviceId = '', phone } = req.params
     const { status } = req.body
     const chatbotSession = await prisma.chatbotSession.findFirst({
         where: {
-            sessionId, phone
+            deviceId, phone
         }
     })
     if (!chatbotSession) {
@@ -111,7 +111,7 @@ export const updateChatbotSession: RequestHandler = async (req, res) => {
 
     await prisma.chatbotSession.update({
         where: {
-            sessionId, phone
+            deviceId, phone
         },
         data: {
             isActive: status
@@ -131,6 +131,20 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
             data.message?.extendedTextMessage?.text ||
             data.message?.imageMessage?.caption ||
             '';
+        // send if autoreply is on
+        const checkAR = await prisma.device.findFirst({
+            where: {
+                sessions: {
+                    some: {
+                        sessionId
+                    }
+                }
+            }
+        })
+        // if no device get
+        if (!checkAR) {
+            return
+        }
         // check if customer doesnt want chatbot
         if (messageText === "101") {
             await prisma.chatbotSession.upsert({
@@ -139,7 +153,7 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 create: {
                     phone,
                     isActive: false,
-                    sessionId
+                    deviceId: checkAR.id
                 }
             })
             const responseText = "Fitur chatbot telah dimatikan, mohon menunggu admin untuk membalas pesan anda..."
@@ -151,27 +165,16 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
             );
             return
         }
-        // send if autoreply is on
-        const checkAR = await prisma.device.findFirst({
-            where: {
-                sessions: {
-                    some: {
-                        sessionId
-                    }
-                }
-            }
-        })
-        console.log("checkAR")
-        console.log(checkAR)
-        if (checkAR?.isAutoReply) {
+
+        if (checkAR.isAutoReply) {
             // check if chatbot session active
             let chatbotSession: ChatbotSession | null
             chatbotSession = await prisma.chatbotSession.findFirst({
-                where: { phone, sessionId }
+                where: { phone, deviceId: checkAR.id }
             })
             if (!chatbotSession) {
                 chatbotSession = await prisma.chatbotSession.create({
-                    data: { phone, sessionId }
+                    data: { phone, deviceId: checkAR.id }
                 })
             }
             if (!chatbotSession.isActive) {
@@ -180,7 +183,7 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
             // detect if its an order
             if (messageText.includes("Format order")) {
                 await prisma.chatbotSession.update({
-                    where: { phone },
+                    where: { phone, deviceId: checkAR.id },
                     data: { isActive: false }
                 })
                 const replyText = "Terima kasih sudah order di tempat kami, mohon lampirkan bukti transfer untuk diproses lebih lanjut"
@@ -193,8 +196,6 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 return
             }
             // get response from chatbot
-            // const replyText = "dummy chat";
-            console.log("send chatbot")
             const result = await fetch(process.env.CHATBOT_URL! + '/chat', {
                 method: "POST",
                 headers: {

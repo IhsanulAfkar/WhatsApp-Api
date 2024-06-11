@@ -5,6 +5,6 @@ const router = Router()
 router.patch('/status', controller.updateAutoReplyStatus)
 router.get('/', controller.getAutoReply)
 router.put('/', controller.editAutoReply)
-router.get('/:sessionId/:phone', controller.getChatbotSession)
-router.put('/:sessionId/:phone', controller.updateChatbotSession)
+router.get('/:deviceId/:phone', controller.getChatbotSession)
+router.put('/:deviceId/:phone', controller.updateChatbotSession)
 export default router
