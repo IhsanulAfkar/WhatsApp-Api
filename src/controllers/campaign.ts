@@ -24,10 +24,10 @@ export const createCampaign: RequestHandler = async (req, res) => {
                 successMessage,
                 failedMessage,
                 unregisteredMessage,
-                recipients,
                 deviceId,
             } = req.body;
             const device = req.device
+            const recipients: string[] = req.body.recipients
             const delay = Number(req.body.delay) || 5000;
 
             // if (
@@ -63,11 +63,6 @@ export const createCampaign: RequestHandler = async (req, res) => {
             }
 
             const userId = req.authenticatedUser.pkId;
-
-            // const device = await prisma.device.findUnique({
-            //     where: { id: deviceId },
-            //     include: { sessions: { select: { sessionId: true } } },
-            // });
             const session = await prisma.session.findFirst({
                 where: { deviceId: device.pkId }
             })
@@ -76,6 +71,33 @@ export const createCampaign: RequestHandler = async (req, res) => {
             }
             if (!session) {
                 return res.status(404).json({ message: 'Session not found' });
+            }
+            // manage recipients
+            let newRecipients: string[] = []
+            for (const rec of recipients) {
+                if (rec.includes('group_')) {
+                    const groupName = rec.split('group_')[1]
+                    const group = await prisma.group.findFirst({
+                        where: {
+                            name: groupName,
+                            userId
+                        },
+                        include: {
+                            contactGroups: {
+                                select: { contact: { select: { phone: true } } }
+                            }
+                        }
+                    })
+                    if (group) {
+                        group.contactGroups.map(({ contact: { phone } }) => newRecipients.push(phone))
+                    }
+                } else {
+                    if (rec === 'all') {
+                        newRecipients = ['all']
+                        break
+                    }
+                    newRecipients.push(rec)
+                }
             }
             await prisma.$transaction(
                 async (transaction) => {
@@ -91,7 +113,7 @@ export const createCampaign: RequestHandler = async (req, res) => {
                         data: {
                             name,
                             recipients: {
-                                set: recipients,
+                                set: newRecipients,
                             },
                             schedule,
                             registrationSyntax: registrationSyntax.toUpperCase(),
