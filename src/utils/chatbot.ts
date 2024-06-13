@@ -134,5 +134,6 @@ export const processChatbot = async (device: Device, intent: string, confidence:
         }
         return `${product.name}\n${formatToIDR(product.price)}\n${product.description || ""} \nReady ya`
     }
-    return "Mohon maaf saya kurang mengerti maksud anda."
+    return null
+    // return "Mohon maaf saya kurang mengerti maksud anda."
 }
