@@ -6,11 +6,11 @@ import { isUUID } from "../utils/uuid";
 
 export const createContact: RequestHandler = async (req, res) => {
     try {
-        console.log("start")
+        // console.log("start")
         const { firstName, lastName = '', phone, email = null, gender = null, deviceId } = req.body
-        console.log("pkid")
+        // console.log("pkid")
         const pkId = req.authenticatedUser.pkId
-        console.log("check contact")
+        // console.log("check contact")
         const existingContact = await prisma.contact.findFirst({
             where: {
                 phone,
@@ -32,7 +32,7 @@ export const createContact: RequestHandler = async (req, res) => {
                 message: 'Contact with this email or phone number already exists in your contact',
             })
         }
-        console.log("start transaction")
+        // console.log("start transaction")
         await prisma.$transaction(async (transaction) => {
             // step 1: create contact
 
@@ -89,6 +89,15 @@ export const createContact: RequestHandler = async (req, res) => {
                     contactId: createdContact.pkId,
                     deviceId: existingDevice.pkId,
                 },
+            })
+            await transaction.chatbotSession.upsert({
+                where: { phone },
+                update: { phone },
+                create: {
+                    phone,
+                    deviceId,
+                    isActive: false,
+                }
             })
             res.status(200).json({ message: 'Contact created successfully' })
         })
