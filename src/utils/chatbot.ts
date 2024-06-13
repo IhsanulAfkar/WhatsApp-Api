@@ -1,6 +1,7 @@
-import { Device } from "@prisma/client";
+import { Device, Product } from "@prisma/client";
 import prisma from "./db";
 import { formatToIDR } from "./currency";
+import { Instance, sendMediaFile } from "../whatsapp";
 
 interface ListIntent {
     [key: string]: string
@@ -47,10 +48,12 @@ const listIntent: ListIntent = {
     "ml.product.9288": "9288 Diamond",
     "ml.product.12976": "12976 Diamond",
 }
-export const processChatbot = async (device: Device, intent: string, confidence: number): Promise<string | null> => {
+export const processChatbot = async (device: Device, intent: string, confidence: number, session: Instance, jid: string, data: any) => {
     console.log("intent")
     console.log(intent, confidence)
     if (confidence > 0.5) {
+        session.readMessages([data.key]);
+        let responseMessage: string
         const user = await prisma.user.findFirst({
             where: {
                 devices: {
@@ -62,16 +65,16 @@ export const processChatbot = async (device: Device, intent: string, confidence:
             include: { AutoReply: true }
         })
         if (!user)
-            return null
+            return
         if (intent === 'greeting') {
-            return `Selamat datang di ${user.AutoReply?.storeName}. Disini kami melayani jasa topup game:\n- Genshin Impact\n- Honkai Star Rail\n- Mobile Legends \nAda yang bisa kami bantu?\n\nMohon ketik 101 untuk berbicara langsung dengan admin dan mematikan fitur chatbot`
+            responseMessage = `Selamat datang di ${user.AutoReply?.storeName}. Disini kami melayani jasa topup game:\n- Genshin Impact\n- Honkai Star Rail\n- Mobile Legends \nAda yang bisa kami bantu?\n\nMohon ketik 101 untuk berbicara langsung dengan admin dan mematikan fitur chatbot`
         }
-        if (intent === 'payment')
-            return user.AutoReply?.paymentReply || null
-        if (intent === 'order') {
-            return `Format order\nLogin via: PC\nEmail/username:\nPass:\nNick:\nOrder:\nServer:\nUID:`
+        else if (intent === 'payment')
+            responseMessage = user.AutoReply?.paymentReply || ""
+        else if (intent === 'order') {
+            responseMessage = `Format order\nLogin via: PC\nEmail/username:\nPass:\nNick:\nOrder:\nServer:\nUID:`
         }
-        if (intent === 'genshin.list') {
+        else if (intent === 'genshin.list') {
             const listGenshin = await prisma.product.findMany({
                 where: {
                     game: 'Genshin'
@@ -82,28 +85,25 @@ export const processChatbot = async (device: Device, intent: string, confidence:
                 return null
             const readyProducts = listGenshin.filter(prod => prod.amount > 0)
             if (readyProducts.length == 0) {
-                return "Maaf, untuk topup genshin saat ini belum ready."
+                responseMessage = "Maaf, untuk topup genshin saat ini belum ready."
             }
-            const reply = "Berikut daftar harga topup untuk Genshin Impact \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
-            return reply;
+            responseMessage = "Berikut daftar harga topup untuk Genshin Impact \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
         }
-        if (intent === 'hsr.list') {
+        else if (intent === 'hsr.list') {
             const listHsr = await prisma.product.findMany({
                 where: {
                     game: 'Honkai Star Rail'
                 }
             })
-
             if (listHsr.length == 0)
-                return null
+                return
             const readyProducts = listHsr.filter(prod => prod.amount > 0)
             if (readyProducts.length == 0) {
-                return "Maaf, untuk topup Honkai Star Rail saat ini belum ready."
+                responseMessage = "Maaf, untuk topup Honkai Star Rail saat ini belum ready."
             }
-            const reply = "Berikut daftar harga topup untuk Honkai Star Rail \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
-            return reply;
+            responseMessage = "Berikut daftar harga topup untuk Honkai Star Rail \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
         }
-        if (intent === 'ml.list') {
+        else if (intent === 'ml.list') {
             const listMl = await prisma.product.findMany({
                 where: {
                     game: 'Mobile Legends'
@@ -111,29 +111,54 @@ export const processChatbot = async (device: Device, intent: string, confidence:
             })
 
             if (listMl.length == 0)
-                return null
+                return
             const readyProducts = listMl.filter(prod => prod.amount > 0)
             if (readyProducts.length == 0) {
-                return "Maaf, untuk topup Mobile Legend saat ini belum ready."
+                responseMessage = "Maaf, untuk topup Mobile Legend saat ini belum ready."
             }
-            const reply = "Berikut daftar harga topup untuk Mobile Legend \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
-            return reply;
+            responseMessage = "Berikut daftar harga topup untuk Mobile Legend \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
         }
-        if (intent === 'appreciation') {
-            return "Terima kasih kembali :)"
+        else if (intent === 'appreciation') {
+            responseMessage = "Terima kasih kembali :)"
         }
-        // rest of intents are products
-        const productName = listIntent[intent]
-        const product = await prisma.product.findFirst({
-            where: { name: productName, userId: user.pkId }
-        })
-        if (!product)
-            return null
-        if (product.amount == 0) {
-            return `Mohon maaf, untuk ${product.name} sedang tidak ready`
+        else {
+            // rest of intents are products
+            const productName = listIntent[intent]
+            const product = await prisma.product.findFirst({
+                where: { name: productName, userId: user.pkId }
+            })
+            if (!product)
+                return
+            if (product.amount == 0) {
+                responseMessage = `Mohon maaf, untuk ${product.name} sedang tidak ready`
+            }
+            const responseProduct = `${product.name}\n${formatToIDR(product.price)}\n${product.description || ""} \nReady ya`
+            if (product.media) {
+                console.log(product.media)
+                await sendMediaFile(
+                    session,
+                    [jid],
+                    {
+                        url: product.media,
+                        newName: product.media.split('/').pop(),
+                    },
+                    ['jpg', 'png', 'jpeg'].includes(product.media.split('.').pop() || '')
+                        ? 'image'
+                        : 'document',
+                    responseProduct,
+                    null,
+                    `AR_${product.pkId}_${Date.now()}`,
+                );
+                return
+            }
+            responseMessage = `${product.name}\n${formatToIDR(product.price)}\n${product.description || ""} \nReady ya`
         }
-        return `${product.name}\n${formatToIDR(product.price)}\n${product.description || ""} \nReady ya`
+        session.sendMessage(
+            jid,
+            { text: responseMessage },
+            { quoted: data },
+        );
     }
-    return null
+    return
     // return "Mohon maaf saya kurang mengerti maksud anda."
 }

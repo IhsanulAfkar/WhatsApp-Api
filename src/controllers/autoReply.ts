@@ -208,16 +208,22 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
                 // get user by session
 
                 // console.log(resultData)
-                const responseText = await processChatbot(checkAR, resultData.intent, resultData.confidence)
-                if (!responseText) {
-                    return
-                }
-                session.readMessages([data.key]);
-                session.sendMessage(
+                await processChatbot(
+                    checkAR,
+                    resultData.intent,
+                    resultData.confidence,
+                    session,
                     jid,
-                    { text: responseText },
-                    { quoted: data },
-                );
+                    data
+                )
+
+                // session.readMessages([data.key]);
+                // session.sendMessage(
+                //     jid,
+                //     { text: responseText },
+                //     { quoted: data },
+                // );
+
             } else {
                 console.log(result.status)
                 console.log(await result.text())

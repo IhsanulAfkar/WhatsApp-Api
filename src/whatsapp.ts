@@ -22,7 +22,7 @@ import { getSocketIO } from './socket';
 import { Server } from 'socket.io';
 import fs from 'fs';
 
-type Instance = WASocket & {
+export type Instance = WASocket & {
     destroy: () => Promise<void>;
     store: Store;
 };
