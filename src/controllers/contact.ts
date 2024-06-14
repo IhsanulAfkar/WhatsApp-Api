@@ -91,8 +91,8 @@ export const createContact: RequestHandler = async (req, res) => {
                 },
             })
             await transaction.chatbotSession.upsert({
-                where: { phone },
-                update: { phone },
+                where: { phone, deviceId: existingDevice.id },
+                update: {},
                 create: {
                     phone,
                     deviceId,
