@@ -67,8 +67,8 @@ export const processChatbot = async (device: Device, intent: string, confidence:
         if (!user)
             return
         if (intent === 'greeting') {
-            return
-            // responseMessage = `Selamat datang di ${user.AutoReply?.storeName}. Disini kami melayani jasa topup game:\n- Genshin Impact\n- Honkai Star Rail\n- Mobile Legends \nAda yang bisa kami bantu?\n\nMohon ketik 101 untuk berbicara langsung dengan admin dan mematikan fitur chatbot`
+            // return
+            responseMessage = `Selamat datang di ${user.AutoReply?.storeName}. Disini kami melayani jasa topup game:\n- Genshin Impact\n- Honkai Star Rail\n- Mobile Legends \nAda yang bisa kami bantu?\n\nMohon ketik 101 untuk berbicara langsung dengan admin dan mematikan fitur chatbot`
         }
         else if (intent === 'payment')
             responseMessage = user.AutoReply?.paymentReply || ""
@@ -120,8 +120,8 @@ export const processChatbot = async (device: Device, intent: string, confidence:
             responseMessage = "Berikut daftar harga topup untuk Mobile Legend \n" + readyProducts.filter(prod => prod.amount > 0).map(prod => `- ${prod.name}: ${formatToIDR(prod.price)}`).join("\n")
         }
         else if (intent === 'appreciation') {
-            return
-            // responseMessage = "Terima kasih kembali :)"
+            // return
+            responseMessage = "Terima kasih kembali :)"
         }
         else {
             // rest of intents are products
