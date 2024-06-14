@@ -194,7 +194,7 @@ export const changeOrderStatus: RequestHandler = async (req, res) => {
 					}
 				})
 				tx.chatbotSession.update({
-					where: { phone: newOrder.phoneNumber },
+					where: { phone: newOrder.phoneNumber, deviceId: device.id },
 					data: {
 						isActive: true
 					}

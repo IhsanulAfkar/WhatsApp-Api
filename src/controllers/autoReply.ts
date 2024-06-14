@@ -148,7 +148,7 @@ export async function sendAutoReply(phone: string, sessionId: any, data: any) {
         // check if customer doesnt want chatbot
         if (messageText === "101") {
             await prisma.chatbotSession.upsert({
-                where: { phone },
+                where: { phone, deviceId: checkAR.id },
                 update: { isActive: false },
                 create: {
                     phone,
