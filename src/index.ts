@@ -33,6 +33,7 @@ prisma
     })
     .catch((error) => {
         logger.error('Failed to connect to the database server:', error);
+        console.log("error ", error)
         process.exit(1);
     });
 

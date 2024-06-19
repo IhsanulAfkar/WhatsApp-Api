@@ -174,7 +174,8 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
     try {
         const broadcastId = req.params.broadcastId;
         const status = req.query.status as string;
-
+        // console.log("broadcastId", broadcastId)
+        // console.log("status", status)
         if (!isUUID(broadcastId)) {
             return res.status(400).json({ message: 'Invalid broadcastId' });
         }
@@ -190,7 +191,7 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
 
         const outgoingBroadcasts = await prisma.outgoingMessage.findMany({
             where: {
-                id: { contains: `BC_${broadcast.pkId}` },
+                id: { startsWith: `BC_${broadcast.pkId}` },
                 status,
             },
             include: {
@@ -204,7 +205,7 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
                 },
             },
         });
-
+        console.log(outgoingBroadcasts)
         res.status(200).json({ outgoingBroadcasts });
     } catch (error) {
         logger.error(error);
