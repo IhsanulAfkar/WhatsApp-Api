@@ -16,6 +16,9 @@ export const createBroadcast: RequestHandler = async (req, res) => {
                 return res.status(400).json({ message: 'Error uploading file' });
             }
             const { name, deviceId, recipients, message, schedule } = req.body;
+            // if (message.length >= 255) {
+            //     return res.status(400).json({ message: "Message too long" })
+            // }
             const delay = Number(req.body.delay) ?? 5000;
 
             if (
@@ -196,6 +199,7 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
             },
             include: {
                 contact: {
+
                     select: {
                         firstName: true,
                         lastName: true,
@@ -205,7 +209,7 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
                 },
             },
         });
-        console.log(outgoingBroadcasts)
+        // console.log(outgoingBroadcasts)
         res.status(200).json({ outgoingBroadcasts });
     } catch (error) {
         logger.error(error);

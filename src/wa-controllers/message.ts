@@ -207,7 +207,6 @@ export default function messageHandler(sessionId: string, event: BaileysEventEmi
                                 } else {
                                     logger.warn({ sessionId, data }, 'incoming messages');
                                     const isCampaign = await sendCampaignReply(sessionId, message);
-                                    console.log("isCampaign", isCampaign)
                                     if (!message?.key?.remoteJid?.includes('@g.us') && !isCampaign) {
                                         sendAutoReply(jid.split('@')[0], sessionId, message)
                                     }

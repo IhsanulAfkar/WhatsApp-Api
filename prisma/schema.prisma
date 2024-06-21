@@ -184,7 +184,7 @@ model Broadcast {
   name       String   @db.VarChar(128)
   status     Boolean  @default(true)
   recipients String[]
-  message    String   @db.VarChar(255)
+  message    String
   schedule   DateTime
   delay      Int
   isSent     Boolean  @default(false)
