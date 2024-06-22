@@ -109,6 +109,9 @@ export const editProduct: RequestHandler = async (req, res) => {
                     }
                 })
             }
+            let newAmount = oldProduct.amount
+            if (amount)
+                newAmount = parseInt(amount)
             const newProduct = await prisma.product.update({
                 where: {
                     id: productId
@@ -117,7 +120,7 @@ export const editProduct: RequestHandler = async (req, res) => {
                     description: description || null,
                     media: req.file?.path,
                     price: parseFloat(price) || oldProduct.price,
-                    amount: parseInt(amount) || oldProduct.amount
+                    amount: newAmount
                 }
             })
             res.status(200).json(newProduct)

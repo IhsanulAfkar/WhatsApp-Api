@@ -219,16 +219,21 @@ export const getOutgoingBroadcasts: RequestHandler = async (req, res) => {
 export const updateBroadcast: RequestHandler = async (req, res) => {
     try {
         const id = req.params.id;
-
+        // const device= req.device
         if (!isUUID(id)) {
             return res.status(400).json({ message: 'Invalid broadcastId' });
         }
-
+        const { name, deviceId, recipients, message, schedule } = req.body;
+        const existBroadcast = await prisma.broadcast.findFirst({
+            where: { id, deviceId }
+        })
+        if (!existBroadcast)
+            return res.status(404).json({ message: "Broadcast not found" })
         diskUpload.single('media')(req, res, async (err: any) => {
             if (err) {
                 return res.status(400).json({ message: 'Error uploading file' });
             }
-            const { name, deviceId, recipients, message, schedule } = req.body;
+
             const delay = Number(req.body.delay) ?? 5000;
 
             if (
