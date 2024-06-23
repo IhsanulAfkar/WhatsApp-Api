@@ -160,7 +160,12 @@ export const processChatbot = async (device: Device, intent: string, confidence:
             { text: responseMessage },
             { quoted: data },
         );
+        return
     }
-    return
-    // return "Mohon maaf saya kurang mengerti maksud anda."
+    session.sendMessage(
+        jid,
+        { text: "Mohon maaf saya kurang mengerti maksud anda." },
+        { quoted: data },
+    );
+
 }
