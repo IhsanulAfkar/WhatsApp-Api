@@ -51,7 +51,7 @@ const listIntent: ListIntent = {
 export const processChatbot = async (device: Device, intent: string, confidence: number, session: Instance, jid: string, data: any) => {
     console.log("intent")
     console.log(intent, confidence)
-    if (confidence > 0.7) {
+    if (confidence > 0.5) {
         session.readMessages([data.key]);
         let responseMessage: string
         const user = await prisma.user.findFirst({
