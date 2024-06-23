@@ -78,7 +78,8 @@ export const processChatbot = async (device: Device, intent: string, confidence:
         else if (intent === 'genshin.list') {
             const listGenshin = await prisma.product.findMany({
                 where: {
-                    game: 'Genshin'
+                    game: 'Genshin',
+                    userId: user.pkId
                 }
             })
 
@@ -93,7 +94,8 @@ export const processChatbot = async (device: Device, intent: string, confidence:
         else if (intent === 'hsr.list') {
             const listHsr = await prisma.product.findMany({
                 where: {
-                    game: 'Honkai Star Rail'
+                    game: 'Honkai Star Rail',
+                    userId: user.pkId
                 }
             })
             if (listHsr.length == 0)
@@ -107,7 +109,8 @@ export const processChatbot = async (device: Device, intent: string, confidence:
         else if (intent === 'ml.list') {
             const listMl = await prisma.product.findMany({
                 where: {
-                    game: 'Mobile Legends'
+                    game: 'Mobile Legends',
+                    userId: user.pkId
                 }
             })
 
