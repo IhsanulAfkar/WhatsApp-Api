@@ -132,9 +132,10 @@ export const processChatbot = async (device: Device, intent: string, confidence:
             const product = await prisma.product.findFirst({
                 where: { name: productName, userId: user.pkId }
             })
+            console.log(product)
             if (!product)
                 return
-            if (product.amount == 0) {
+            if (product.amount === 0) {
                 responseMessage = `Mohon maaf, untuk ${product.name} sedang tidak ready`
             }
             const responseProduct = `${product.name}\n${formatToIDR(product.price)}\n${product.description || ""} \nReady ya`
