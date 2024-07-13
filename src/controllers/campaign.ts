@@ -310,13 +310,7 @@ export async function sendCampaignReply(sessionId: any, data: any) {
                 replyText = matchingCampaign.successMessage;
             }
 
-            session.readMessages([data.key]);
 
-            session.sendMessage(
-                jid,
-                { text: replaceVariables(replyText, variables) },
-                { quoted: data },
-            );
             // }
             logger.warn(matchingCampaign, 'campaign response sent successfully');
 
@@ -360,6 +354,13 @@ export async function sendCampaignReply(sessionId: any, data: any) {
                     }
                 }
             });
+            session.readMessages([data.key]);
+
+            session.sendMessage(
+                jid,
+                { text: replaceVariables(replyText, variables) },
+                { quoted: data },
+            );
         }
         return true
     } catch (error) {
